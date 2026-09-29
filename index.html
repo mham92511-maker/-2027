@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>صوت AI</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #101828, #1d2939);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .box {
+      width: 100%;
+      max-width: 600px;
+      background: rgba(255,255,255,.08);
+      padding: 25px;
+      border-radius: 24px;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 15px 50px rgba(0,0,0,.3);
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 0;
+    }
+
+    .sub {
+      text-align: center;
+      color: #cbd5e1;
+      margin-bottom: 25px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      border: none;
+      outline: none;
+      border-radius: 16px;
+      padding: 18px;
+      font-size: 18px;
+      line-height: 1.8;
+      background: white;
+      color: #111827;
+    }
+
+    .counter {
+      text-align: left;
+      color: #cbd5e1;
+      margin: 8px 3px 15px;
+      font-size: 14px;
+    }
+
+    select,
+    button {
+      width: 100%;
+      padding: 15px;
+      margin-top: 10px;
+      border-radius: 14px;
+      border: none;
+      font-size: 17px;
+    }
+
+    select {
+      background: white;
+      color: #111827;
+    }
+
+    button {
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    #download {
+      display: none;
+      text-decoration: none;
+      text-align: center;
+      background: #16a34a;
+      color: white;
+      padding: 15px;
+      border-radius: 14px;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    #status {
+      text-align: center;
+      margin-top: 15px;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="box">
+
+    <h1>🎙️ صوت AI</h1>
+
+    <div class="sub">
+      حوّل النص إلى صوت بالذكاء الاصطناعي
+    </div>
+
+    <textarea
+      id="text"
+      maxlength="200"
+      placeholder="اكتب النص الذي تريد تحويله إلى صوت..."
+    ></textarea>
+
+    <div class="counter">
+      <span id="count">0</span> / 200
+    </div>
+
+    <select id="voice">
+      <option value="noura">نورة - صوت نسائي</option>
+      <option value="lulwa">لولوة - صوت نسائي</option>
+      <option value="aisha">عائشة - صوت نسائي</option>
+      <option value="fahad">فهد - صوت رجالي</option>
+      <option value="abdullah">عبدالله - صوت رجالي</option>
+      <option value="sultan">سلطان - صوت رجالي</option>
+    </select>
+
+    <button id="generate">
+      🔊 تحويل إلى صوت
+    </button>
+
+    <div id="status"></div>
+
+    <audio id="audio" controls></audio>
+
+    <a id="download" download="ai-voice.wav">
+      ⬇️ تحميل الصوت
+    </a>
+
+  </div>
+
+<script>
+  const text = document.getElementById("text");
+  const count = document.getElementById("count");
+  const generate = document.getElementById("generate");
+  const voice = document.getElementById("voice");
+  const audio = document.getElementById("audio");
+  const download = document.getElementById("download");
+  const status = document.getElementById("status");
+
+  text.addEventListener("input", () => {
+    count.textContent = text.value.length;
+  });
+
+  generate.addEventListener("click", async () => {
+
+    const input = text.value.trim();
+
+    if (!input) {
+      status.textContent = "⚠️ اكتب نصًا أولًا";
+      return;
+    }
+
+    if (input.length > 200) {
+      status.textContent = "⚠️ الحد الأقصى 200 حرف";
+      return;
+    }
+
+    generate.disabled = true;
+    status.textContent = "⏳ جاري إنشاء الصوت...";
+    audio.removeAttribute("src");
+    download.style.display = "none";
+
+    try {
+
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text: input,
+          voice: voice.value
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || "حدث خطأ في إنشاء الصوت");
+      }
+
+      const blob = await response.blob();
+
+      const url = URL.createObjectURL(blob);
+
+      audio.src = url;
+      download.href = url;
+      download.style.display = "block";
+
+      status.textContent = "✅ تم إنشاء الصوت بنجاح";
+
+    } catch (error) {
+
+      status.textContent = "❌ " + error.message;
+
+    } finally {
+
+      generate.disabled = false;
+
+    }
+  });
+</script>
+
+</body>
+</html>
